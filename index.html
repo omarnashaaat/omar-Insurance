@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>omar Insurance - التأمينات الاجتماعية</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
+    
+    <!-- Scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Cairo', 'sans-serif'],
+            },
+          }
+        }
+      }
+    </script>
+    
+    <style>
+      [x-cloak] { display: none !important; }
+      body { background-color: #f8fafc; color: #0f172a; font-family: 'Cairo', sans-serif; }
+      .custom-scroll::-webkit-scrollbar { width: 6px; }
+      .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+      .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+      .stat-card-shadow { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); }
+    </style>
+  </head>
+  <body x-data="insuranceApp()" x-init="init()">
+    
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm">
+      <div class="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-6">
+        <!-- Logo Section (Standard Right in RTL) -->
+        <div class="flex items-center gap-4">
+          <div class="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-100">
+            <i data-lucide="shield" class="text-white w-7 h-7"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-black text-[#0f172a]">omar <span class="text-blue-600">Insurance</span></h1>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">نظام التأمينات الاجتماعية الذكي</p>
+          </div>
+        </div>
+
+        <!-- Search & Control Section (Standard Left in RTL) -->
+        <div class="flex flex-1 flex-wrap items-center justify-end gap-4">
+          <div class="relative w-full max-w-sm">
+            <i data-lucide="search" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i>
+            <input 
+              type="text" 
+              placeholder="ابحث عن موظف..."
+              x-model="searchTerm"
+              class="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 rounded-2xl py-3 pr-12 pl-6 transition-all outline-none text-sm font-black text-slate-800"
+            >
+          </div>
+          
+          <button 
+            @click="openModal()"
+            class="bg-[#0f172a] text-white px-8 py-3.5 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-600 transition-all shadow-xl active:scale-95"
+          >
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            <span>إضافة موظف</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-12 space-y-10">
+      
+      <!-- Stats Dashboard -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <!-- Stat Card Item -->
+        <template x-for="stat in [
+          { label: 'إجمالي الموظفين', value: stats().total, icon: 'users', color: 'bg-white', text: 'text-slate-900', iconColor: 'bg-slate-100 text-slate-400' },
+          { label: 'مؤمن عليه', value: stats().insured, icon: 'shield-check', color: 'bg-emerald-500', text: 'text-white', iconColor: 'bg-white/20 text-white' },
+          { label: 'غير مؤمن عليه', value: stats().notInsured, icon: 'shield-alert', color: 'bg-rose-500', text: 'text-white', iconColor: 'bg-white/20 text-white' },
+          { label: 'نسبة التغطية', value: stats().ratio + '%', icon: 'zap', color: 'bg-slate-900', text: 'text-white', iconColor: 'bg-white/10 text-white' }
+        ]">
+          <div :class="stat.color + ' ' + stat.text" class="rounded-[2.5rem] p-8 flex items-center justify-between shadow-xl transition-transform hover:-translate-y-1">
+            <div>
+              <p class="text-[11px] font-black uppercase opacity-70 mb-1" x-text="stat.label"></p>
+              <p class="text-4xl font-black" x-text="stat.value"></p>
+            </div>
+            <div :class="stat.iconColor" class="p-4 rounded-2xl">
+              <i :data-lucide="stat.icon" class="w-8 h-8"></i>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- S1 & S6 Movement Reports (Separate Section) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
+          <div class="flex items-center justify-between mb-8">
+            <h3 class="text-xl font-black text-slate-900 flex items-center gap-3">
+              <span class="w-2 h-8 bg-blue-600 rounded-full"></span>
+              تقرير الحركة التأمينية (س1 / س6)
+            </h3>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <!-- S1 Report Card -->
+            <div class="bg-blue-50/50 rounded-3xl p-6 border border-blue-100">
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-[10px] font-black text-blue-600 bg-blue-100 px-3 py-1 rounded-full uppercase">س1 - دخول الموظف</span>
+                <i data-lucide="file-input" class="text-blue-500 w-5 h-5"></i>
+              </div>
+              <div class="flex items-end justify-between">
+                <div>
+                  <p class="text-3xl font-black text-blue-900" x-text="employees.filter(e => e.form1).length"></p>
+                  <p class="text-[10px] text-blue-400 font-bold mt-1">إجمالي استمارات الدخول المرفوعة</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-lg font-black text-blue-700" x-text="Math.round((employees.filter(e => e.form1).length / employees.length) * 100) + '%'"></p>
+                  <div class="w-24 h-1.5 bg-blue-200 rounded-full mt-1">
+                    <div class="h-full bg-blue-600 rounded-full" :style="'width: ' + ((employees.filter(e => e.form1).length / employees.length) * 100) + '%'"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- S6 Report Card -->
+            <div class="bg-indigo-50/50 rounded-3xl p-6 border border-indigo-100">
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-[10px] font-black text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full uppercase">س6 - خروج الموظف</span>
+                <i data-lucide="file-output" class="text-indigo-500 w-5 h-5"></i>
+              </div>
+              <div class="flex items-end justify-between">
+                <div>
+                  <p class="text-3xl font-black text-indigo-900" x-text="employees.filter(e => e.form6).length"></p>
+                  <p class="text-[10px] text-indigo-400 font-bold mt-1">إجمالي استمارات الخروج المرفوعة</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-lg font-black text-indigo-700" x-text="Math.round((employees.filter(e => e.form6).length / employees.length) * 100) + '%'"></p>
+                  <div class="w-24 h-1.5 bg-indigo-200 rounded-full mt-1">
+                    <div class="h-full bg-indigo-600 rounded-full" :style="'width: ' + ((employees.filter(e => e.form6).length / employees.length) * 100) + '%'"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Info Box -->
+        <div class="bg-[#0f172a] rounded-[2.5rem] p-8 text-white relative overflow-hidden flex flex-col justify-between">
+          <i data-lucide="calculator" class="absolute -left-4 -bottom-4 w-40 h-40 opacity-10 -rotate-12"></i>
+          <div class="relative z-10">
+            <h4 class="text-sm font-black opacity-60 uppercase tracking-widest mb-6">توزيع حصص التأمين</h4>
+            <div class="space-y-6">
+              <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10">
+                <span class="font-bold">حصة صاحب العمل</span>
+                <span class="font-black text-xl text-blue-400">18.75%</span>
+              </div>
+              <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10">
+                <span class="font-bold">حصة المؤمن عليه</span>
+                <span class="font-black text-xl text-emerald-400">11%</span>
+              </div>
+              <div class="pt-4 border-t border-white/10">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-lg">الإجمالي</span>
+                  <span class="font-black text-3xl">29.75%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employees List -->
+      <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-8 py-6 border-b border-gray-50 flex items-center justify-between bg-white">
+          <h2 class="text-lg font-black text-gray-900 border-r-4 border-blue-600 pr-3">قائمة الموظفين</h2>
+          <div class="flex gap-2">
+            <span class="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-xs font-black" x-text="filteredEmployees().length + ' سجل متاح'"></span>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto custom-scroll">
+          <table class="w-full text-right">
+            <thead>
+              <tr class="bg-slate-50/50 text-[11px] font-black text-gray-400 uppercase tracking-widest">
+                <th class="py-5 px-8 text-center bg-slate-100/50">الإجراءات</th>
+                <th class="py-5 px-8">الموظف</th>
+                <th class="py-5 px-8">الحالة</th>
+                <th class="py-5 px-8 text-center">المستندات (س1/س6)</th>
+                <th class="py-5 px-8">الرقم والأجر</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              <template x-for="employee in filteredEmployees()" :key="employee.id">
+                <tr class="hover:bg-slate-50/30 transition-all">
+                  <!-- Actions First (at Right in RTL) -->
+                  <td class="py-6 px-8 text-center bg-slate-50/50 border-l border-slate-100">
+                    <div class="flex items-center gap-3 justify-center">
+                      <button @click="editEmployee(employee)" class="flex items-center gap-2 px-5 py-2.5 text-xs font-black text-blue-600 bg-white border border-blue-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                        <span>تعديل</span>
+                      </button>
+                      <button @click="deleteEmployee(employee.id)" class="flex items-center gap-2 px-5 py-2.5 text-xs font-black text-rose-600 bg-white border border-rose-100 hover:bg-rose-600 hover:text-white rounded-xl transition-all shadow-sm">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>حذف</span>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="py-6 px-8">
+                    <div class="flex items-center gap-4">
+                      <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xl" x-text="employee.name[0]"></div>
+                      <div>
+                        <p class="font-black text-gray-900 leading-tight" x-text="employee.name"></p>
+                        <p class="text-[10px] text-gray-400 font-mono mt-1" x-text="employee.code"></p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-6 px-8">
+                    <span :class="employee.isInsured ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'" 
+                          class="px-4 py-2 rounded-xl text-[11px] font-black inline-flex items-center gap-2">
+                      <span :class="employee.isInsured ? 'bg-emerald-500' : 'bg-rose-500'" class="w-1.5 h-1.5 rounded-full"></span>
+                      <span x-text="employee.isInsured ? 'مؤمن عليه' : 'غير مؤمن عليه'"></span>
+                    </span>
+                  </td>
+                  <td class="py-6 px-8 text-center">
+                    <div class="flex items-center gap-6 justify-center">
+                      <!-- S1 Entry -->
+                      <div class="relative group/doc flex flex-col items-center">
+                        <div class="relative">
+                          <input type="file" :id="'s1-' + employee.id" class="hidden" @change="uploadFile($event, employee, 'form1')">
+                          <label :for="'s1-' + employee.id" 
+                                 :class="employee.form1 ? 'bg-emerald-600 text-white border-emerald-700 shadow-md' : 'bg-white text-slate-400 border-slate-200'" 
+                                 class="w-12 h-12 rounded-2xl border flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 group-hover:border-emerald-400">
+                            <i :data-lucide="employee.form1 ? 'check-circle' : 'plus-square'" class="w-6 h-6"></i>
+                          </label>
+                          
+                          <!-- Action Buttons -->
+                          <template x-if="employee.form1">
+                            <div class="absolute -top-2 -inset-x-2 flex justify-between z-10">
+                              <button @click="viewFile(employee, 'form1')" 
+                                      class="bg-blue-600 text-white p-1 rounded-full border-2 border-white shadow-sm hover:bg-blue-700 transition-colors">
+                                <i data-lucide="eye" class="w-3 h-3"></i>
+                              </button>
+                              <button @click="deleteFile(employee, 'form1')" 
+                                      class="bg-rose-500 text-white p-1 rounded-full border-2 border-white shadow-sm hover:bg-rose-600 transition-colors">
+                                <i data-lucide="x" class="w-3 h-3"></i>
+                              </button>
+                            </div>
+                          </template>
+                        </div>
+                        <span class="text-[9px] font-black mt-2 uppercase text-slate-500">س1 دخول</span>
+                        <template x-if="employee.form1_name">
+                           <span class="text-[8px] text-gray-400 max-w-[60px] truncate block font-bold" x-text="employee.form1_name"></span>
+                        </template>
+                      </div>
+
+                      <!-- S6 Exit -->
+                      <div class="relative group/doc flex flex-col items-center">
+                        <div class="relative">
+                          <input type="file" :id="'s6-' + employee.id" class="hidden" @change="uploadFile($event, employee, 'form6')">
+                          <label :for="'s6-' + employee.id" 
+                                 :class="employee.form6 ? 'bg-orange-500 text-white border-orange-600 shadow-md' : 'bg-white text-slate-400 border-slate-200'" 
+                                 class="w-12 h-12 rounded-2xl border flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 group-hover:border-orange-400">
+                            <i :data-lucide="employee.form6 ? 'check-circle' : 'plus-square'" class="w-6 h-6"></i>
+                          </label>
+
+                          <!-- Action Buttons -->
+                          <template x-if="employee.form6">
+                            <div class="absolute -top-2 -inset-x-2 flex justify-between z-10">
+                              <button @click="viewFile(employee, 'form6')" 
+                                      class="bg-blue-600 text-white p-1 rounded-full border-2 border-white shadow-sm hover:bg-blue-700 transition-colors">
+                                <i data-lucide="eye" class="w-3 h-3"></i>
+                              </button>
+                              <button @click="deleteFile(employee, 'form6')" 
+                                      class="bg-rose-500 text-white p-1 rounded-full border-2 border-white shadow-sm hover:bg-rose-600 transition-colors">
+                                <i data-lucide="x" class="w-3 h-3"></i>
+                              </button>
+                            </div>
+                          </template>
+                        </div>
+                        <span class="text-[9px] font-black mt-2 uppercase text-slate-500">س6 خروج</span>
+                        <template x-if="employee.form6_name">
+                           <span class="text-[8px] text-gray-400 max-w-[60px] truncate block font-bold" x-text="employee.form6_name"></span>
+                        </template>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-6 px-8">
+                    <div class="space-y-1.5">
+                      <p class="text-sm font-black text-slate-700" x-text="employee.insuranceNumber || 'بدون رقم'"></p>
+                      <template x-if="employee.isInsured && employee.insuranceSalary">
+                        <div class="flex gap-2">
+                          <span class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100" x-text="'الشركة: ' + (employee.insuranceSalary * 0.1875).toFixed(2)"></span>
+                          <span class="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100" x-text="'الموظف: ' + (employee.insuranceSalary * 0.11).toFixed(2)"></span>
+                        </div>
+                      </template>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+
+              <template x-if="filteredEmployees().length === 0">
+                <tr>
+                  <td colspan="5" class="py-24 text-center opacity-40">
+                    <i data-lucide="inbox" class="w-16 h-16 mx-auto mb-4"></i>
+                    <p class="text-xl font-black">لا توجد بيانات متاحة حالياً</p>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <!-- Professional Modal -->
+    <div x-show="modalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div x-show="modalOpen" 
+           x-transition:enter="duration-300 ease-out" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+           class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="modalOpen = false"></div>
+      
+      <div x-show="modalOpen"
+           x-transition:enter="duration-300 ease-out transform" x-transition:enter-start="opacity-0 translate-y-8 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+           class="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl relative z-10 overflow-hidden">
+        
+        <div class="p-8 border-b border-gray-100 flex items-center justify-between bg-white">
+          <h2 class="text-2xl font-black text-slate-900" x-text="editMode ? 'تعديل الملف التأميني' : 'تسجيل موظف جديد'"></h2>
+          <button @click="modalOpen = false" class="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+
+        <form @submit.prevent="saveEmployee()" class="p-10 space-y-8 bg-slate-50/20">
+          <div class="grid grid-cols-2 gap-6">
+            <div class="col-span-2 space-y-2">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">الاسم بالكامل</label>
+              <input type="text" x-model="form.name" required placeholder="أدخل اسم الموظف..." 
+                     class="w-full bg-white border-2 border-slate-100 focus:border-blue-500 rounded-2xl p-4 transition-all outline-none font-black text-slate-900 shadow-sm">
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">كود التعريف</label>
+              <input type="text" x-model="form.code" required placeholder="EMP-001" 
+                     class="w-full bg-white border-2 border-slate-100 focus:border-blue-500 rounded-2xl p-4 transition-all outline-none font-black text-slate-900 shadow-sm">
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">الحالة التأمينية</label>
+              <select x-model="form.isInsured" 
+                      class="w-full bg-white border-2 border-slate-100 focus:border-blue-500 rounded-2xl p-4 transition-all outline-none font-black text-slate-900 shadow-sm appearance-none cursor-pointer">
+                <option :value="false">غير مؤمن عليه</option>
+                <option :value="true">مؤمن عليه</option>
+              </select>
+            </div>
+
+            <template x-if="form.isInsured">
+              <div class="grid grid-cols-2 gap-6 col-span-2 pt-2">
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">الرقم التأميني</label>
+                  <input type="text" x-model="form.insuranceNumber" placeholder="000000000" 
+                         class="w-full bg-white border-2 border-slate-100 focus:border-blue-500 rounded-2xl p-4 transition-all outline-none font-black text-slate-900 shadow-sm">
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">الأجر التأميني (ج.م)</label>
+                  <input type="number" x-model="form.insuranceSalary" placeholder="0.00" 
+                         class="w-full bg-white border-2 border-slate-100 focus:border-blue-500 rounded-2xl p-4 transition-all outline-none font-black text-slate-900 shadow-sm text-left">
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <button type="submit" 
+                  class="w-full bg-[#0f172a] text-white p-5 rounded-[1.5rem] font-black text-lg hover:bg-blue-600 transition-all shadow-2xl active:scale-[0.98] mt-4">
+            <span x-text="editMode ? 'تحديث البيانات' : 'إتمام التسجيل'"></span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div x-show="previewModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div x-show="previewModalOpen" 
+           x-transition:enter="duration-300 ease-out" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+           class="absolute inset-0 bg-slate-900/60 backdrop-blur-md" @click="previewModalOpen = false"></div>
+      
+      <div x-show="previewModalOpen"
+           x-transition:enter="duration-300 ease-out transform" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+           class="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] shadow-2xl relative z-10 overflow-hidden flex flex-col">
+        
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
+          <div class="flex items-center gap-4">
+             <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+             </div>
+             <div>
+                <h2 class="text-xl font-black text-slate-900" x-text="previewFile.name"></h2>
+                <div class="flex gap-2">
+                   <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">معاينة المستند التأميني</p>
+                   <a :href="previewFile.url" :download="previewFile.name" class="text-[10px] text-blue-600 font-bold hover:underline">تحميل مباشر</a>
+                </div>
+             </div>
+          </div>
+          <button @click="previewModalOpen = false" class="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <div class="flex-1 bg-slate-100 overflow-auto p-4 flex items-center justify-center min-h-[400px]">
+          <template x-if="previewFile.type.startsWith('image/')">
+            <img :src="previewFile.url" class="max-w-full h-auto rounded-lg shadow-lg">
+          </template>
+          <template x-if="previewFile.type === 'application/pdf'">
+            <div class="w-full h-full flex flex-col items-center">
+               <embed :src="previewFile.url" type="application/pdf" class="w-full h-[600px] rounded-lg shadow-lg" />
+               <p class="mt-4 text-[10px] text-slate-400 font-bold flex items-center gap-2">
+                 <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                 إذا لم تظهر المعاينة، يمكنك استخدام <a :href="previewFile.url" :download="previewFile.name" class="text-blue-600 underline">رابط التحميل المباشر</a>
+               </p>
+            </div>
+          </template>
+          <template x-if="!previewFile.type.startsWith('image/') && previewFile.type !== 'application/pdf'">
+             <div class="text-center p-12">
+                <i data-lucide="file-warning" class="w-16 h-16 text-slate-300 mx-auto mb-4"></i>
+                <p class="text-slate-500 font-bold">هذا النوع من الملفات قد لا يدعم المعاينة المباشرة</p>
+                <a :href="previewFile.url" download class="inline-flex items-center gap-2 mt-4 px-6 py-2 bg-blue-600 text-white rounded-xl font-black text-sm">تحميل الملف الآن</a>
+             </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+      function insuranceApp() {
+        return {
+          employees: [],
+          searchTerm: '',
+          modalOpen: false,
+          previewModalOpen: false,
+          previewFile: { name: '', url: '', type: '' },
+          editMode: false,
+          form: { id: null, name: '', code: '', isInsured: false, insuranceNumber: '', insuranceSalary: 0 },
+          
+          init() {
+            const saved = localStorage.getItem('omar_insurance_v2');
+            this.employees = saved ? JSON.parse(saved) : [
+              { id: 1000, name: 'أحمد محمود القاضي', code: 'EMP1000', isInsured: true, insuranceNumber: '88726351', insuranceSalary: 12000, form1: true, form6: false },
+              { id: 1001, name: 'سارة إبراهيم محمد', code: 'EMP1001', isInsured: false, insuranceNumber: '', insuranceSalary: 0, form1: false, form6: false }
+            ];
+            
+            this.$watch('employees', () => {
+              localStorage.setItem('omar_insurance_v2', JSON.stringify(this.employees));
+              this.refreshIcons();
+            });
+
+            this.$watch('searchTerm', () => {
+              this.refreshIcons();
+            });
+            
+            this.refreshIcons();
+          },
+
+          refreshIcons() {
+            this.$nextTick(() => {
+              if (window.lucide) {
+                window.lucide.createIcons();
+              }
+            });
+          },
+
+          stats() {
+            const insuredCount = this.employees.filter(e => e.isInsured).length;
+            const total = this.employees.length;
+            return {
+              total: total,
+              insured: insuredCount,
+              notInsured: total - insuredCount,
+              ratio: total > 0 ? Math.round((insuredCount / total) * 100) : 0
+            };
+          },
+
+          filteredEmployees() {
+            if (!this.searchTerm) return this.employees;
+            const search = this.searchTerm.toLowerCase();
+            return this.employees.filter(e => 
+              e.name.toLowerCase().includes(search) || 
+              e.code.toLowerCase().includes(search)
+            );
+          },
+
+          openModal() {
+            this.editMode = false;
+            this.form = { id: null, name: '', code: 'EMP' + (1000 + this.employees.length), isInsured: false, insuranceNumber: '', insuranceSalary: 0 };
+            this.modalOpen = true;
+            this.$nextTick(() => lucide.createIcons());
+          },
+
+          editEmployee(emp) {
+            this.editMode = true;
+            this.form = { ...emp };
+            this.modalOpen = true;
+            this.$nextTick(() => lucide.createIcons());
+          },
+
+          saveEmployee() {
+            if (this.editMode) {
+              const idx = this.employees.findIndex(e => e.id === this.form.id);
+              this.employees[idx] = { ...this.employees[idx], ...this.form };
+            } else {
+              this.employees.unshift({ 
+                ...this.form, 
+                id: Date.now(), 
+                form1: false, 
+                form6: false 
+              });
+            }
+            this.modalOpen = false;
+          },
+
+          deleteEmployee(id) {
+            if(confirm('هل أنت متأكد من حذف هذا السجل بشكل نهائي؟')) {
+              this.employees = this.employees.filter(e => e.id !== id);
+            }
+          },
+
+          uploadFile(e, employee, key) {
+            const file = e.target.files[0];
+            if (file) {
+              const idx = this.employees.findIndex(emp => emp.id === employee.id);
+              this.employees[idx][key] = true;
+              this.employees[idx][key + '_name'] = file.name;
+              this.employees[idx][key + '_url'] = URL.createObjectURL(file);
+              this.employees[idx][key + '_type'] = file.type;
+              this.employees = [...this.employees];
+            }
+          },
+
+          viewFile(employee, field) {
+            const url = employee[field + '_url'];
+            if (!url) {
+              alert('المعاينة متاحة فقط للملفات المرفوعة في الجلسة الحالية. يرجى إعادة رفع الملف للمعاينة.');
+              return;
+            }
+            this.previewFile = {
+              name: employee[field + '_name'],
+              url: url,
+              type: employee[field + '_type'] || 'image/jpeg'
+            };
+            this.previewModalOpen = true;
+            this.refreshIcons();
+          },
+
+          deleteFile(employee, field) {
+            if(confirm('هل تريد حذف هذا المستند؟')) {
+              const idx = this.employees.findIndex(emp => emp.id === employee.id);
+              if (this.employees[idx][field + '_url']) {
+                URL.revokeObjectURL(this.employees[idx][field + '_url']);
+              }
+              this.employees[idx][field] = false;
+              this.employees[idx][field + '_name'] = null;
+              this.employees[idx][field + '_url'] = null;
+              this.employees = [...this.employees];
+            }
+          }
+        }
+      }
+    </script>
+  </body>
+</html>
